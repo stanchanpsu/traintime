@@ -44,7 +44,7 @@ DIR_COLORS = {
 # Route-specific direction overrides
 ROUTE_DIRECTION_LABELS = {
     "G": {
-        "N": "↑ Manhattan"  # User requested: "only say manhattan since it doesn't go to queens"
+        "N": "↑ Queens"
     }
 }
 
