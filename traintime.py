@@ -24,7 +24,7 @@ BOROUGH         = "Brooklyn"
 FEED_IDS        = ["R", "F", "G"] # MTA feed routes (nyct-gtfs v2.1.0+)
 TRAINS_PER_STATION = 5           # rows to display per station
 MAX_TRAINS      = TRAINS_PER_STATION
-REFRESH_SECS    = 30             # how often to poll the API
+REFRESH_SECS    = 10             # Fetch from MTA every 10s
 CYCLE_SECS      = 10             # seconds to show each station
 FULLSCREEN      = os.environ.get("FULLSCREEN", "1") != "0" # Set to 0 to run in a window
 RETRY_BASE_SECS = 5              # base delay for retry on error
