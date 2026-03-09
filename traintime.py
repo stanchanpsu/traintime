@@ -18,20 +18,24 @@ except ImportError:
     raise
 
 # ── Configuration ──────────────────────────────────────────────────────────────
-STATION_STOP_ID = "R32"          # Union St, Brooklyn (R train)
-STATION_NAME    = "Union St"
+STATIONS        = {"R32": "Union St", "R33": "4 Av - 9 St"}
 BOROUGH         = "Brooklyn"
 FEED_ID         = "R"            # MTA feed route (nyct-gtfs v2.1.0+)
-MAX_TRAINS      = 4              # rows to display (reduced from 8)
+TRAINS_PER_STATION = 3           # rows to display per station
+MAX_TRAINS      = len(STATIONS) * TRAINS_PER_STATION
 REFRESH_SECS    = 30             # how often to poll the API
 FULLSCREEN      = os.environ.get("FULLSCREEN", "1") != "0" # Set to 0 to run in a window
 RETRY_BASE_SECS = 5              # base delay for retry on error
 RETRY_MAX_SECS  = 120            # max delay cap for retry backoff
 
-# Direction labels
+# Direction labels and colors
 DIRECTION_LABELS = {
-    "N": "↑ Manhattan",
-    "S": "↓ Bay Ridge"
+    "N": "↑ Manh/Queens",
+    "S": "↓ Bay Ridge / CI"
+}
+DIR_COLORS = {
+    "N": "#FBBF24",  # Yellowish for North
+    "S": "#34D399"   # Greenish for South
 }
 
 # Route colors (MTA official)
@@ -116,7 +120,7 @@ class TraintimeApp:
         left = tk.Frame(header, bg=HEADER_COLOR)
         left.pack(side="left", padx=int(16*scale))
 
-        tk.Label(left, text=STATION_NAME, font=self.fnt_title,
+        tk.Label(left, text="MTA TrainTime", font=self.fnt_title,
                  bg=HEADER_COLOR, fg=TEXT_PRIMARY).pack(anchor="w")
         tk.Label(left, text=f"{BOROUGH} · R train", font=self.fnt_sub,
                  bg=HEADER_COLOR, fg=TEXT_SECONDARY).pack(anchor="w")
@@ -135,12 +139,12 @@ class TraintimeApp:
         col_frame = tk.Frame(self.root, bg=PANEL_BG, pady=int(2*scale))
         col_frame.pack(fill="x", padx=int(16*scale), pady=(int(4*scale), 0))
 
-        col_frame.columnconfigure(0, minsize=int(60*scale))   # route badge
-        col_frame.columnconfigure(1, weight=1)                # destination
-        col_frame.columnconfigure(2, minsize=int(80*scale))   # direction
+        col_frame.columnconfigure(0, minsize=int(40*scale))   # route badge
+        col_frame.columnconfigure(1, weight=1)                # station AND destination
+        col_frame.columnconfigure(2, minsize=int(130*scale))  # direction (wider)
         col_frame.columnconfigure(3, minsize=int(120*scale))  # time
 
-        headers = [("", 0), ("Destination", 1), ("Dir.", 2), ("Arrives", 3)]
+        headers = [("", 0), ("Station / Destination", 1), ("Dir.", 2), ("", 3)]
         anchors = ["center",  "w",  "center", "e"]
         for text, col in headers:
             tk.Label(col_frame, text=text, font=self.fnt_header,
@@ -172,18 +176,22 @@ class TraintimeApp:
             row = {}
 
             # Route badge (Canvas circle)
-            badge_canvas = tk.Canvas(self.rows_frame, width=int(40*scale),
-                                     height=int(40*scale), bg=bg,
+            badge_canvas = tk.Canvas(self.rows_frame, width=int(28*scale),
+                                     height=int(28*scale), bg=bg,
                                      highlightthickness=0, bd=0)
             badge_canvas.grid(row=i, column=0, sticky="nsew",
-                              pady=int(3*scale), padx=int(8*scale))
+                              pady=int(4*scale), padx=int(8*scale))
             row["badge_canvas"] = badge_canvas
             row["badge_bg"]     = bg
 
-            # Destination
-            dest_lbl = tk.Label(self.rows_frame, text="", font=self.fnt_dest,
-                                bg=bg, fg=TEXT_PRIMARY, anchor="w", padx=int(8*scale))
-            dest_lbl.grid(row=i, column=1, sticky="ew")
+            # Station / Dest block
+            dest_frame = tk.Frame(self.rows_frame, bg=bg)
+            dest_frame.grid(row=i, column=1, sticky="w", padx=int(8*scale))
+            sta_lbl = tk.Label(dest_frame, text="", font=self.fnt_dest, bg=bg, fg="#93C5FD")
+            sta_lbl.pack(side="top", anchor="w")
+            dest_lbl = tk.Label(dest_frame, text="", font=self.fnt_min, bg=bg, fg=TEXT_PRIMARY)
+            dest_lbl.pack(side="top", anchor="w")
+            row["sta"]  = sta_lbl
             row["dest"] = dest_lbl
 
             # Direction
@@ -217,7 +225,7 @@ class TraintimeApp:
         """Show a centered message and hide all train rows."""
         for row in self._row_widgets:
             row["badge_canvas"].grid_remove()
-            row["dest"].grid_remove()
+            row["sta"].master.grid_remove()
             row["dir"].grid_remove()
             row["mins"].pack_forget()
             row["mins_unit"].pack_forget()
@@ -231,8 +239,8 @@ class TraintimeApp:
         sc = self.scale
         for i, row in enumerate(self._row_widgets):
             row["badge_canvas"].grid(row=i, column=0, sticky="nsew",
-                                     pady=int(3*sc), padx=int(8*sc))
-            row["dest"].grid(row=i, column=1, sticky="ew")
+                                     pady=int(4*sc), padx=int(8*sc))
+            row["sta"].master.grid(row=i, column=1, sticky="w", padx=int(8*sc))
             row["dir"].grid(row=i, column=2, sticky="ew")
             row["mins"].master.grid(row=i, column=3, sticky="ew", padx=int(8*sc))
             row["mins"].pack(side="right")
@@ -292,15 +300,15 @@ class TraintimeApp:
         feed = NYCTFeed(FEED_ID)
         now_ts = datetime.now().timestamp()
 
-        arrivals = []
+        arrivals_by_station = {s: [] for s in STATIONS.keys()}
         for trip in feed.trips:
             for stop_time in trip.stop_time_updates:
-                if stop_time.stop_id.startswith(STATION_STOP_ID):
+                stop_base = stop_time.stop_id[:-1] if stop_time.stop_id and len(stop_time.stop_id) > 1 else ""
+                if stop_base in STATIONS:
                     direction = stop_time.stop_id[-1] if stop_time.stop_id[-1] in ("N", "S") else "?"
                     arrival_ts = stop_time.arrival or stop_time.departure
                     if arrival_ts is None:
                         continue
-                    # arrival_ts is a datetime object
                     if hasattr(arrival_ts, "timestamp"):
                         arr_epoch = arrival_ts.timestamp()
                     else:
@@ -309,11 +317,11 @@ class TraintimeApp:
                     if mins_away < -0.5:  # already departed
                         continue
                     route = trip.route_id
-                    # nyct-gtfs v2.1.0 API
                     dest = getattr(trip, 'headsign_text', None) \
                         or getattr(trip, 'nyc_train_id', None) \
                         or "Unknown"
-                    arrivals.append({
+                    arrivals_by_station[stop_base].append({
+                        "station":   STATIONS[stop_base],
                         "route":     route,
                         "dest":      dest,
                         "direction": direction,
@@ -321,10 +329,18 @@ class TraintimeApp:
                         "epoch":     arr_epoch,
                     })
 
-        arrivals.sort(key=lambda x: x["mins"])
+        # Combine
+        combined_arrivals = []
+        for s in STATIONS.keys():
+            st_arr = arrivals_by_station[s]
+            st_arr.sort(key=lambda x: x["mins"])
+            combined_arrivals.extend(st_arr[:TRAINS_PER_STATION])
+            
+        # Optional: master sort by time, or leave grouped by station. We will leave grouped by station!
+        # combined_arrivals.sort(key=lambda x: x["mins"])
 
         with self.lock:
-            self.trains = arrivals[:MAX_TRAINS]
+            self.trains = combined_arrivals
             self.last_updated = datetime.now()
             self.status_msg = "Live"
 
@@ -361,25 +377,27 @@ class TraintimeApp:
                 mins  = t["mins"]
                 route = t["route"]
 
-                # Badge
+                # Badge (smaller)
                 c = row["badge_canvas"]
                 c.delete("all")
                 color      = ROUTE_COLORS.get(route, "#666")
                 text_color = ROUTE_TEXT_COLORS.get(route, "#000")
-                pad = int(4*sc)
-                c.create_oval(pad, pad, int(40*sc)-pad, int(40*sc)-pad, fill=color, outline="")
-                c.create_text(int(20*sc), int(20*sc), text=route,
+                c.create_oval(0, 0, int(28*sc), int(28*sc), fill=color, outline="")
+                c.create_text(int(14*sc), int(14*sc), text=route,
                               font=self.fnt_route, fill=text_color)
 
-                # Destination
+                # Station and Destination
+                row["sta"].config(text=t["station"])
+                
                 dest = t["dest"]
-                if len(dest) > 28:
-                    dest = dest[:26] + "…"
-                row["dest"].config(text=dest, fg=TEXT_PRIMARY)
+                if len(dest) > 24:
+                    dest = dest[:22] + "…"
+                row["dest"].config(text="to " + dest)
 
-                # Direction
+                # Direction (colored)
                 dir_text = DIRECTION_LABELS.get(t["direction"], t["direction"])
-                row["dir"].config(text=dir_text)
+                dir_color = DIR_COLORS.get(t["direction"], TEXT_SECONDARY)
+                row["dir"].config(text=dir_text, fg=dir_color)
 
                 # Minutes
                 if mins < 1:
@@ -400,6 +418,7 @@ class TraintimeApp:
                 # Hide unused rows
                 c = row["badge_canvas"]
                 c.delete("all")
+                row["sta"].config(text="")
                 row["dest"].config(text="")
                 row["dir"].config(text="")
                 row["mins"].config(text="")
