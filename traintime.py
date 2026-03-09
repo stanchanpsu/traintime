@@ -110,11 +110,11 @@ class TraintimeApp:
         self.fnt_message = tkfont.Font(family="DejaVu Sans", size=int(18*scale))
 
         # ── Header bar ──────────────────────────────────────────────────────────
-        header = tk.Frame(self.root, bg=HEADER_COLOR, pady=int(12*scale))
+        header = tk.Frame(self.root, bg=HEADER_COLOR, pady=int(4*scale))
         header.pack(fill="x")
 
         left = tk.Frame(header, bg=HEADER_COLOR)
-        left.pack(side="left", padx=int(24*scale))
+        left.pack(side="left", padx=int(16*scale))
 
         tk.Label(left, text=STATION_NAME, font=self.fnt_title,
                  bg=HEADER_COLOR, fg=TEXT_PRIMARY).pack(anchor="w")
@@ -122,7 +122,7 @@ class TraintimeApp:
                  bg=HEADER_COLOR, fg=TEXT_SECONDARY).pack(anchor="w")
 
         right = tk.Frame(header, bg=HEADER_COLOR)
-        right.pack(side="right", padx=int(24*scale))
+        right.pack(side="right", padx=int(16*scale))
 
         self.clock_label = tk.Label(right, text="", font=self.fnt_time,
                                     bg=HEADER_COLOR, fg=TEXT_PRIMARY)
@@ -132,8 +132,8 @@ class TraintimeApp:
         self.status_label.pack(anchor="e")
 
         # ── Column headers ───────────────────────────────────────────────────────
-        col_frame = tk.Frame(self.root, bg=PANEL_BG, pady=int(6*scale))
-        col_frame.pack(fill="x", padx=int(16*scale), pady=(int(10*scale), 0))
+        col_frame = tk.Frame(self.root, bg=PANEL_BG, pady=int(2*scale))
+        col_frame.pack(fill="x", padx=int(16*scale), pady=(int(4*scale), 0))
 
         col_frame.columnconfigure(0, minsize=int(60*scale))   # route badge
         col_frame.columnconfigure(1, weight=1)                # destination
@@ -154,7 +154,7 @@ class TraintimeApp:
         # ── Train rows container ─────────────────────────────────────────────────
         self.rows_frame = tk.Frame(self.root, bg=BG_COLOR)
         self.rows_frame.pack(fill="both", expand=True, padx=int(16*scale),
-                             pady=(int(4*scale), int(8*scale)))
+                             pady=(int(2*scale), int(4*scale)))
         for c in [0, 1, 2, 3]:
             self.rows_frame.columnconfigure(c, weight=(0 if c in [0,2,3] else 1))
         self.rows_frame.columnconfigure(0, minsize=int(60*scale))
@@ -205,14 +205,8 @@ class TraintimeApp:
             row["mins_unit"] = mins_unit
 
             self._row_widgets.append(row)
-
-        # ── Footer ───────────────────────────────────────────────────────────────
-        footer = tk.Frame(self.root, bg=HEADER_COLOR, pady=int(6*scale))
-        footer.pack(fill="x", side="bottom")
-        self.footer_label = tk.Label(footer, text="", font=self.fnt_status,
-                                     bg=HEADER_COLOR, fg=TEXT_SECONDARY)
-        self.footer_label.pack()
-
+        # No footer for RPi display to save space
+        
         # Show loading state on startup
         self._show_center_message("🔄  Connecting to MTA…")
 
@@ -410,12 +404,10 @@ class TraintimeApp:
                 row["dir"].config(text="")
                 row["mins"].config(text="")
                 row["mins_unit"].config(text="")
-
-        if last:
-            status = f"MTA GTFS-RT · Union St (R32) · Refreshes every {REFRESH_SECS}s · ESC to quit"
-            if is_err:
-                status = f"⚠ Connection lost (retrying…) · Showing data from {last.strftime('%I:%M %p').lstrip('0')} · ESC to quit"
-            self.footer_label.config(text=status)
+        # Update status in header instead of deleted footer
+        if last and is_err:
+            with self.lock:
+                self.status_msg = f"⚠ Connection lost (retrying…) · Showing data from {last.strftime('%I:%M %p').lstrip('0')}"
 
 
 # ── Entry Point ──────────────────────────────────────────────────────────────────
