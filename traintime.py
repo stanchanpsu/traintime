@@ -119,11 +119,11 @@ class TraintimeApp:
         self.fnt_title   = tkfont.Font(family="DejaVu Sans", size=int(26*scale), weight="bold")
         self.fnt_sub     = tkfont.Font(family="DejaVu Sans", size=int(11*scale))
         self.fnt_header  = tkfont.Font(family="DejaVu Sans", size=int(10*scale), weight="bold")
-        self.fnt_route   = tkfont.Font(family="DejaVu Sans", size=int(18*scale), weight="bold")
+        self.fnt_route   = tkfont.Font(family="DejaVu Sans", size=int(22*scale), weight="bold")
         self.fnt_time    = tkfont.Font(family="DejaVu Sans", size=int(24*scale), weight="bold")
         self.fnt_min     = tkfont.Font(family="DejaVu Sans", size=int(14*scale))
         self.fnt_dest    = tkfont.Font(family="DejaVu Sans", size=int(16*scale))
-        self.fnt_status  = tkfont.Font(family="DejaVu Sans", size=int(12*scale))
+        self.fnt_status  = tkfont.Font(family="DejaVu Sans", size=int(16*scale))
         self.fnt_message = tkfont.Font(family="DejaVu Sans", size=int(20*scale))
 
         # ── Slim Header (Clock & Status on one line) ───────────────────────────
@@ -167,18 +167,18 @@ class TraintimeApp:
             row = {}
 
             # Route badge (Canvas circle)
-            badge_canvas = tk.Canvas(self.rows_frame, width=int(40*scale),
-                                     height=int(40*scale), bg=bg,
+            badge_canvas = tk.Canvas(self.rows_frame, width=int(50*scale),
+                                     height=int(50*scale), bg=bg,
                                      highlightthickness=0, bd=0)
             badge_canvas.grid(row=i, column=0, sticky="nsew",
-                              pady=int(8*scale), padx=int(8*scale))
+                              pady=int(6*scale), padx=int(8*scale))
             row["badge_canvas"] = badge_canvas
             row["badge_bg"]     = bg
 
             # Direction
             dir_lbl = tk.Label(self.rows_frame, text="", font=self.fnt_status,
                                bg=bg, fg=TEXT_SECONDARY, anchor="w")
-            dir_lbl.grid(row=i, column=1, sticky="ew", padx=int(16*scale))
+            dir_lbl.grid(row=i, column=1, sticky="ew", padx=int(16*scale), pady=int(6*scale))
             row["dir"] = dir_lbl
 
             # Arrival time
@@ -215,8 +215,8 @@ class TraintimeApp:
         sc = self.scale
         for i, row in enumerate(self._row_widgets):
             row["badge_canvas"].grid(row=i, column=0, sticky="nsew",
-                                     pady=int(8*sc), padx=int(8*sc))
-            row["dir"].grid(row=i, column=1, sticky="ew", padx=int(16*sc), pady=int(8*sc))
+                                     pady=int(6*sc), padx=int(8*sc))
+            row["dir"].grid(row=i, column=1, sticky="ew", padx=int(16*sc), pady=int(6*sc))
             row["mins"].master.grid(row=i, column=2, sticky="ew", padx=int(8*sc))
             row["mins"].pack(side="right")
             row["mins_unit"].pack(side="right", padx=(0, int(4*sc)))
@@ -358,8 +358,8 @@ class TraintimeApp:
                 c.delete("all")
                 color = ROUTE_COLORS.get(route, "#666")
                 text_color = ROUTE_TEXT_COLORS.get(route, "#000")
-                c.create_oval(0, 0, int(40*sc), int(40*sc), fill=color, outline="")
-                c.create_text(int(20*sc), int(20*sc), text=route, font=self.fnt_route, fill=text_color)
+                c.create_oval(0, 0, int(50*sc), int(50*sc), fill=color, outline="")
+                c.create_text(int(25*sc), int(25*sc), text=route, font=self.fnt_route, fill=text_color)
 
                 row["dir"].config(text=DIRECTION_LABELS.get(t["direction"], t["direction"]),
                                   fg=DIR_COLORS.get(t["direction"], TEXT_SECONDARY))
