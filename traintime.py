@@ -111,18 +111,18 @@ class TraintimeApp:
             sw = 720
             sh = 480
 
-        # Massive scaling factor for single-station view
-        scale = max(0.5, sw / 1280) * 3.2
+        # Balanced scaling factor for single-station view on 480p
+        scale = max(0.5, sw / 1280) * 2.2
         self.scale = scale
-        self.fnt_title   = tkfont.Font(family="DejaVu Sans", size=int(26*scale), weight="bold")
+        self.fnt_title   = tkfont.Font(family="DejaVu Sans", size=int(22*scale), weight="bold")
         self.fnt_sub     = tkfont.Font(family="DejaVu Sans", size=int(11*scale))
         self.fnt_header  = tkfont.Font(family="DejaVu Sans", size=int(10*scale), weight="bold")
         self.fnt_route   = tkfont.Font(family="DejaVu Sans", size=int(16*scale), weight="bold")
-        self.fnt_time    = tkfont.Font(family="DejaVu Sans", size=int(22*scale), weight="bold")
-        self.fnt_min     = tkfont.Font(family="DejaVu Sans", size=int(14*scale))
-        self.fnt_dest    = tkfont.Font(family="DejaVu Sans", size=int(16*scale))
-        self.fnt_status  = tkfont.Font(family="DejaVu Sans", size=int(11*scale))
-        self.fnt_message = tkfont.Font(family="DejaVu Sans", size=int(22*scale))
+        self.fnt_time    = tkfont.Font(family="DejaVu Sans", size=int(20*scale), weight="bold")
+        self.fnt_min     = tkfont.Font(family="DejaVu Sans", size=int(12*scale))
+        self.fnt_dest    = tkfont.Font(family="DejaVu Sans", size=int(14*scale))
+        self.fnt_status  = tkfont.Font(family="DejaVu Sans", size=int(10*scale))
+        self.fnt_message = tkfont.Font(family="DejaVu Sans", size=int(18*scale))
 
         # ── Slim Header (Clock & Status on one line) ───────────────────────────
         header = tk.Frame(self.root, bg=BG_COLOR, pady=int(4*scale))
@@ -170,7 +170,7 @@ class TraintimeApp:
                                      height=int(40*scale), bg=bg,
                                      highlightthickness=0, bd=0)
             badge_canvas.grid(row=i, column=0, sticky="nsew",
-                              pady=int(18*scale), padx=int(8*scale))
+                              pady=int(12*scale), padx=int(8*scale))
             row["badge_canvas"] = badge_canvas
             row["badge_bg"]     = bg
 
@@ -222,8 +222,8 @@ class TraintimeApp:
         sc = self.scale
         for i, row in enumerate(self._row_widgets):
             row["badge_canvas"].grid(row=i, column=0, sticky="nsew",
-                                     pady=int(18*sc), padx=int(8*sc))
-            row["dest"].master.grid(row=i, column=1, sticky="w", padx=int(8*sc), pady=int(18*sc))
+                                     pady=int(12*sc), padx=int(8*sc))
+            row["dest"].master.grid(row=i, column=1, sticky="w", padx=int(8*sc), pady=int(12*sc))
             row["dir"].grid(row=i, column=2, sticky="ew")
             row["mins"].master.grid(row=i, column=3, sticky="ew", padx=int(8*sc))
             row["mins"].pack(side="right")
