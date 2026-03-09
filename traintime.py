@@ -111,18 +111,18 @@ class TraintimeApp:
             sw = 720
             sh = 480
 
-        # Balanced scaling factor for single-station view on 480p
-        scale = max(0.5, sw / 1280) * 2.2
+        # Proportional scaling for single-view (No destination)
+        scale = max(0.5, sw / 1280) * 2.5
         self.scale = scale
-        self.fnt_title   = tkfont.Font(family="DejaVu Sans", size=int(22*scale), weight="bold")
+        self.fnt_title   = tkfont.Font(family="DejaVu Sans", size=int(26*scale), weight="bold")
         self.fnt_sub     = tkfont.Font(family="DejaVu Sans", size=int(11*scale))
         self.fnt_header  = tkfont.Font(family="DejaVu Sans", size=int(10*scale), weight="bold")
-        self.fnt_route   = tkfont.Font(family="DejaVu Sans", size=int(16*scale), weight="bold")
-        self.fnt_time    = tkfont.Font(family="DejaVu Sans", size=int(20*scale), weight="bold")
-        self.fnt_min     = tkfont.Font(family="DejaVu Sans", size=int(12*scale))
-        self.fnt_dest    = tkfont.Font(family="DejaVu Sans", size=int(14*scale))
-        self.fnt_status  = tkfont.Font(family="DejaVu Sans", size=int(10*scale))
-        self.fnt_message = tkfont.Font(family="DejaVu Sans", size=int(18*scale))
+        self.fnt_route   = tkfont.Font(family="DejaVu Sans", size=int(18*scale), weight="bold")
+        self.fnt_time    = tkfont.Font(family="DejaVu Sans", size=int(24*scale), weight="bold")
+        self.fnt_min     = tkfont.Font(family="DejaVu Sans", size=int(14*scale))
+        self.fnt_dest    = tkfont.Font(family="DejaVu Sans", size=int(16*scale))
+        self.fnt_status  = tkfont.Font(family="DejaVu Sans", size=int(12*scale))
+        self.fnt_message = tkfont.Font(family="DejaVu Sans", size=int(20*scale))
 
         # ── Slim Header (Clock & Status on one line) ───────────────────────────
         header = tk.Frame(self.root, bg=BG_COLOR, pady=int(4*scale))
@@ -149,11 +149,10 @@ class TraintimeApp:
         self.rows_frame = tk.Frame(self.root, bg=BG_COLOR)
         self.rows_frame.pack(fill="both", expand=True, padx=int(16*scale),
                              pady=(int(2*scale), int(4*scale)))
-        for c in [0, 1, 2, 3]:
-            self.rows_frame.columnconfigure(c, weight=(0 if c in [0,2,3] else 1))
-        self.rows_frame.columnconfigure(0, minsize=int(60*scale))
-        self.rows_frame.columnconfigure(2, minsize=int(100*scale))
-        self.rows_frame.columnconfigure(3, minsize=int(140*scale))
+        for c in [0, 1, 2]:
+            self.rows_frame.columnconfigure(c, weight=(0 if c in [0,2] else 1))
+        self.rows_frame.columnconfigure(0, minsize=int(80*scale))
+        self.rows_frame.columnconfigure(2, minsize=int(160*scale))
 
         # Center message label (for loading / error / no trains)
         self.center_message = tk.Label(self.rows_frame, text="", font=self.fnt_message,
@@ -174,22 +173,15 @@ class TraintimeApp:
             row["badge_canvas"] = badge_canvas
             row["badge_bg"]     = bg
 
-            # Dest block
-            dest_frame = tk.Frame(self.rows_frame, bg=bg)
-            dest_frame.grid(row=i, column=1, sticky="w", padx=int(8*scale))
-            dest_lbl = tk.Label(dest_frame, text="", font=self.fnt_dest, bg=bg, fg=TEXT_PRIMARY)
-            dest_lbl.pack(side="top", anchor="w")
-            row["dest"] = dest_lbl
-
             # Direction
             dir_lbl = tk.Label(self.rows_frame, text="", font=self.fnt_status,
-                               bg=bg, fg=TEXT_SECONDARY, anchor="center")
-            dir_lbl.grid(row=i, column=2, sticky="ew")
+                               bg=bg, fg=TEXT_SECONDARY, anchor="w")
+            dir_lbl.grid(row=i, column=1, sticky="ew", padx=int(16*scale))
             row["dir"] = dir_lbl
 
             # Arrival time
             time_frame = tk.Frame(self.rows_frame, bg=bg)
-            time_frame.grid(row=i, column=3, sticky="ew", padx=int(8*scale))
+            time_frame.grid(row=i, column=2, sticky="ew", padx=int(8*scale))
             mins_lbl = tk.Label(time_frame, text="", font=self.fnt_time,
                                 bg=bg, anchor="e")
             mins_lbl.pack(side="right")
@@ -210,7 +202,6 @@ class TraintimeApp:
         """Show a centered message and hide all train rows."""
         for row in self._row_widgets:
             row["badge_canvas"].grid_remove()
-            row["dest"].master.grid_remove()
             row["dir"].grid_remove()
             row["mins"].master.grid_remove()
         self.center_message.config(text=text, fg=color or TEXT_SECONDARY)
@@ -223,9 +214,8 @@ class TraintimeApp:
         for i, row in enumerate(self._row_widgets):
             row["badge_canvas"].grid(row=i, column=0, sticky="nsew",
                                      pady=int(12*sc), padx=int(8*sc))
-            row["dest"].master.grid(row=i, column=1, sticky="w", padx=int(8*sc), pady=int(12*sc))
-            row["dir"].grid(row=i, column=2, sticky="ew")
-            row["mins"].master.grid(row=i, column=3, sticky="ew", padx=int(8*sc))
+            row["dir"].grid(row=i, column=1, sticky="ew", padx=int(16*sc), pady=int(12*sc))
+            row["mins"].master.grid(row=i, column=2, sticky="ew", padx=int(8*sc))
             row["mins"].pack(side="right")
             row["mins_unit"].pack(side="right", padx=(0, int(4*sc)))
 
@@ -363,10 +353,6 @@ class TraintimeApp:
                 c.create_oval(0, 0, int(40*sc), int(40*sc), fill=color, outline="")
                 c.create_text(int(20*sc), int(20*sc), text=route, font=self.fnt_route, fill=text_color)
 
-                dest = t["dest"]
-                if len(dest) > 18: dest = dest[:16] + "…"
-                row["dest"].config(text="to " + dest)
-
                 row["dir"].config(text=DIRECTION_LABELS.get(t["direction"], t["direction"]),
                                   fg=DIR_COLORS.get(t["direction"], TEXT_SECONDARY))
 
@@ -382,7 +368,6 @@ class TraintimeApp:
                     row["mins_unit"].config(text="min")
             else:
                 row["badge_canvas"].delete("all")
-                row["dest"].config(text="")
                 row["dir"].config(text="")
                 row["mins"].config(text="")
                 row["mins_unit"].config(text="")
