@@ -88,8 +88,12 @@ class TraintimeApp:
 
     # ── UI Build ────────────────────────────────────────────────────────────────
     def _build_ui(self):
-        sw = self.root.winfo_screenwidth()
-        sh = self.root.winfo_screenheight()
+        if FULLSCREEN:
+            sw = self.root.winfo_screenwidth()
+            sh = self.root.winfo_screenheight()
+        else:
+            sw = 800
+            sh = 480
 
         # Fonts — pick sizes based on screen width
         # Increased scaling factor by 1.8x to make fonts and UI elements much bigger
