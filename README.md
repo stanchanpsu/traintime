@@ -1,19 +1,21 @@
 # 🚇 TrainTime
 
-A real-time MTA train schedule display for the **Union St. (R)** station in Brooklyn, built in Python and designed to run on a **Raspberry Pi**.
+A real-time MTA train schedule display for Brooklyn stations, designed for a **Raspberry Pi** with a touchscreen.
 
 ![Python](https://img.shields.io/badge/python-3.7+-blue) ![MTA GTFS-RT](https://img.shields.io/badge/data-MTA%20GTFS--RT-yellow)
 
-## Features
+## 🌟 Features
 
-- 🟡 Live R train arrival times for Union St. (Brooklyn)
-- 🔄 Auto-refreshes every 30 seconds from the MTA GTFS-Realtime feed
-- 🖥️ Fullscreen `tkinter` UI — great for a dedicated display
-- ⏱️ Color-coded countdowns (green → amber → red as train approaches)
-- 🔁 Automatic retry with exponential backoff on connection errors
-- 📡 No API key required
+- 🚉 **Multi-Station Support**: Cycles between **Union St. (R)** and **4 Av - 9 St (F, G, R)**.
+- 🔢 **5-Train View**: Displays the next 5 upcoming trains per station.
+- 👆 **Interactive Touch**: Tap the screen at any time to skip to the next station and reset the 10s auto-rotate timer.
+- ⏱️ **Live Countdown**: Minutes away now update in real-time between data fetches for smooth "approaching" visuals.
+- ⏳ **Custom Thresholds**: Filter out trains arriving too soon to catch (configurable).
+- 🔄 **High Frequency**: Polls the MTA API every **10 seconds** to stay perfectly in sync.
+- 🖥️ **Tailored UI**: Bolder route badges and larger fonts optimized for small-form-factor displays (480p).
+- 🔁 **Resilient**: Automatic retry with exponential backoff on connection errors.
 
-## Quick Start
+## 🚀 Quick Start
 
 ### 1. Clone the repo
 
@@ -25,54 +27,68 @@ cd traintime
 ### 2. Install dependencies
 
 ```bash
-pip3 install -r requirements.txt --break-system-packages
+# Recommended to use a virtual environment
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
 ```
 
 ### 3. Run
 
 ```bash
-python3 traintime.py
+python traintime.py
 ```
 
-Press **Escape** to quit the fullscreen app, or **F11** to toggle fullscreen.
+Press **Escape** to quit, or **F11** to toggle fullscreen.
 
-## Raspberry Pi Setup
+## ⚙️ Configuration
+
+You can customize behavior using environment variables:
+
+| Variable | Description | Default |
+| :--- | :--- | :--- |
+| `FULLSCREEN` | Set to `0` to run in a window for local testing. | `1` |
+| `MIN_THRESHOLD_MINS` | Only show trains that are at least X minutes away. | `5` |
+
+Example:
+```bash
+FULLSCREEN=0 MIN_THRESHOLD_MINS=3 python traintime.py
+```
+
+## 🛠️ Raspberry Pi Setup
 
 ### Prerequisites
 
-- Raspberry Pi 3 or newer
-- Display connected via HDMI
-- Internet connection
-- Raspberry Pi OS with desktop (for tkinter/X11)
+- Raspberry Pi (3 or newer) with a touchscreen (e.g., the official 7" 800x480 or similar).
+- Internet connection.
+- Raspberry Pi OS with desktop.
 
-### One-Command Setup
+### Automatic Auto-start
 
-After cloning, run the setup script to install dependencies and configure auto-start on boot:
+Run the included setup script to configure the app to start automatically on boot:
 
 ```bash
 chmod +x setup.sh
 ./setup.sh
 ```
 
-This will:
-1. Install Python dependencies
-2. Set up a systemd service for auto-start on boot
-3. Optionally start the app immediately
-
-### Running over SSH
-
-If you want to run manually over SSH (with a display connected to the Pi):
-
+This sets up a `traintime.service` unit. You can view logs with:
 ```bash
-export DISPLAY=:0 && python3 traintime.py
+journalctl -u traintime -f
 ```
 
-### Useful Commands
+## 🔍 Debugging
+
+If you suspect train data is missing, we've included a standalone debug tool to check raw MTA feeds:
+```bash
+./venv/bin/python debug_mta.py
+```
+
+## 📜 Commands
 
 ```bash
 sudo systemctl start traintime    # Start the app
-sudo systemctl stop traintime     # Stop the app
-sudo systemctl restart traintime  # Restart
-sudo systemctl status traintime   # Check status
-journalctl -u traintime -f        # View live logs
+sudo systemctl stop traintime     # Stop the app (Graceful shutdown)
+sudo systemctl restart traintime  # Restart after updates
+sudo systemctl status traintime   # Check if it's running
 ```
