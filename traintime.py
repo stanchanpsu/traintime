@@ -18,9 +18,9 @@ except ImportError:
     raise
 
 # ── Configuration ──────────────────────────────────────────────────────────────
-STATIONS        = {"R32": "Union St", "R33": "4 Av - 9 St"}
+STATIONS        = {"R32": "Union St", "F23": "4 Av - 9 St"}
 BOROUGH         = "Brooklyn"
-FEED_ID         = "R"            # MTA feed route (nyct-gtfs v2.1.0+)
+FEED_IDS        = ["R", "F", "G"] # MTA feed routes (nyct-gtfs v2.1.0+)
 TRAINS_PER_STATION = 3           # rows to display per station
 MAX_TRAINS      = len(STATIONS) * TRAINS_PER_STATION
 REFRESH_SECS    = 30             # how often to poll the API
@@ -31,11 +31,11 @@ RETRY_MAX_SECS  = 120            # max delay cap for retry backoff
 # Direction labels and colors
 DIRECTION_LABELS = {
     "N": "↑ Manh/Queens",
-    "S": "↓ Bay Ridge / CI"
+    "S": "↓ Brooklyn/CI"
 }
 DIR_COLORS = {
-    "N": "#FBBF24",  # Yellowish for North
-    "S": "#34D399"   # Greenish for South
+    "N": "#34D399",  # Greenish for North (Manhattan direction)
+    "S": "#FBBF24"   # Yellowish for South (Brooklyn direction)
 }
 
 # Route colors (MTA official)
@@ -297,37 +297,43 @@ class TraintimeApp:
                 time.sleep(delay)
 
     def _fetch_trains(self):
-        feed = NYCTFeed(FEED_ID)
         now_ts = datetime.now().timestamp()
-
         arrivals_by_station = {s: [] for s in STATIONS.keys()}
-        for trip in feed.trips:
-            for stop_time in trip.stop_time_updates:
-                stop_base = stop_time.stop_id[:-1] if stop_time.stop_id and len(stop_time.stop_id) > 1 else ""
-                if stop_base in STATIONS:
-                    direction = stop_time.stop_id[-1] if stop_time.stop_id[-1] in ("N", "S") else "?"
-                    arrival_ts = stop_time.arrival or stop_time.departure
-                    if arrival_ts is None:
-                        continue
-                    if hasattr(arrival_ts, "timestamp"):
-                        arr_epoch = arrival_ts.timestamp()
-                    else:
-                        arr_epoch = float(arrival_ts)
-                    mins_away = (arr_epoch - now_ts) / 60
-                    if mins_away < -0.5:  # already departed
-                        continue
-                    route = trip.route_id
-                    dest = getattr(trip, 'headsign_text', None) \
-                        or getattr(trip, 'nyc_train_id', None) \
-                        or "Unknown"
-                    arrivals_by_station[stop_base].append({
-                        "station":   STATIONS[stop_base],
-                        "route":     route,
-                        "dest":      dest,
-                        "direction": direction,
-                        "mins":      mins_away,
-                        "epoch":     arr_epoch,
-                    })
+        
+        for feed_id in FEED_IDS:
+            try:
+                feed = NYCTFeed(feed_id)
+            except Exception as e:
+                print(f"[TrainTime] Error fetching feed {feed_id}: {e}")
+                continue
+                
+            for trip in feed.trips:
+                for stop_time in trip.stop_time_updates:
+                    stop_base = stop_time.stop_id[:-1] if stop_time.stop_id and len(stop_time.stop_id) > 1 else ""
+                    if stop_base in STATIONS:
+                        direction = stop_time.stop_id[-1] if stop_time.stop_id[-1] in ("N", "S") else "?"
+                        arrival_ts = stop_time.arrival or stop_time.departure
+                        if arrival_ts is None:
+                            continue
+                        if hasattr(arrival_ts, "timestamp"):
+                            arr_epoch = arrival_ts.timestamp()
+                        else:
+                            arr_epoch = float(arrival_ts)
+                        mins_away = (arr_epoch - now_ts) / 60
+                        if mins_away < -0.5:  # already departed
+                            continue
+                        route = trip.route_id
+                        dest = getattr(trip, 'headsign_text', None) \
+                            or getattr(trip, 'nyc_train_id', None) \
+                            or "Unknown"
+                        arrivals_by_station[stop_base].append({
+                            "station":   STATIONS[stop_base],
+                            "route":     route,
+                            "dest":      dest,
+                            "direction": direction,
+                            "mins":      mins_away,
+                            "epoch":     arr_epoch,
+                        })
 
         # Combine
         combined_arrivals = []
