@@ -78,8 +78,9 @@ class TraintimeApp:
         self.root.configure(bg=BG_COLOR)
         if FULLSCREEN:
             self.root.attributes("-fullscreen", True)
+            self.root.config(cursor="none")
         else:
-            self.root.geometry("800x480") # Default window size
+            self.root.geometry("720x480") # Default window size for local testing
         self.root.bind("<Escape>", lambda e: self.root.destroy())
         self.root.bind("<F11>",    lambda e: self.root.attributes("-fullscreen",
                                          not self.root.attributes("-fullscreen")))
@@ -104,8 +105,8 @@ class TraintimeApp:
             sh = 480
 
         # Fonts — pick sizes based on screen width
-        # Increased scaling factor by 1.8x to make fonts and UI elements much bigger
-        scale = max(0.5, sw / 1280) * 1.8
+        # Increased scaling factor to 2.2x to make fonts and UI elements fill the screen better
+        scale = max(0.5, sw / 1280) * 2.2
         self.scale = scale
         self.fnt_title   = tkfont.Font(family="DejaVu Sans", size=int(22*scale), weight="bold")
         self.fnt_sub     = tkfont.Font(family="DejaVu Sans", size=int(11*scale))
@@ -158,7 +159,7 @@ class TraintimeApp:
                                      height=int(28*scale), bg=bg,
                                      highlightthickness=0, bd=0)
             badge_canvas.grid(row=i, column=0, sticky="nsew",
-                              pady=int(8*scale), padx=int(8*scale))
+                              pady=int(12*scale), padx=int(8*scale))
             row["badge_canvas"] = badge_canvas
             row["badge_bg"]     = bg
 
@@ -217,8 +218,8 @@ class TraintimeApp:
         sc = self.scale
         for i, row in enumerate(self._row_widgets):
             row["badge_canvas"].grid(row=i, column=0, sticky="nsew",
-                                     pady=int(8*sc), padx=int(8*sc))
-            row["sta"].master.grid(row=i, column=1, sticky="w", padx=int(8*sc), pady=int(8*sc))
+                                     pady=int(12*sc), padx=int(8*sc))
+            row["sta"].master.grid(row=i, column=1, sticky="w", padx=int(8*sc), pady=int(12*sc))
             row["dir"].grid(row=i, column=2, sticky="ew")
             row["mins"].master.grid(row=i, column=3, sticky="ew", padx=int(8*sc))
             row["mins"].pack(side="right")
