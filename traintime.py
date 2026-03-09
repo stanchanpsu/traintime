@@ -40,6 +40,13 @@ DIR_COLORS = {
     "S": "#FBBF24"   # Yellowish for South (Brooklyn direction)
 }
 
+# Route-specific direction overrides
+ROUTE_DIRECTION_LABELS = {
+    "G": {
+        "N": "↑ Manhattan"  # User requested: "only say manhattan since it doesn't go to queens"
+    }
+}
+
 # Route colors (MTA official)
 ROUTE_COLORS = {
     "R": "#FCCC0A",  # Yellow (BMT Broadway)
@@ -361,8 +368,15 @@ class TraintimeApp:
                 c.create_oval(0, 0, int(60*sc), int(60*sc), fill=color, outline="")
                 c.create_text(int(30*sc), int(30*sc), text=route, font=self.fnt_route, fill=text_color)
 
-                row["dir"].config(text=DIRECTION_LABELS.get(t["direction"], t["direction"]),
-                                  fg=DIR_COLORS.get(t["direction"], TEXT_SECONDARY))
+                direction = t["direction"]
+
+                # Direction text with route-specific override
+                dir_text = ROUTE_DIRECTION_LABELS.get(route, {}).get(direction)
+                if not dir_text:
+                    dir_text = DIRECTION_LABELS.get(direction, direction)
+
+                row["dir"].config(text=dir_text,
+                                  fg=DIR_COLORS.get(direction, TEXT_SECONDARY))
 
                 if mins < 1:
                     row["mins"].config(text="Now", fg=GREEN_COLOR)
