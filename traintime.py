@@ -297,38 +297,44 @@ class TraintimeApp:
         for feed_id in FEED_IDS:
             try:
                 feed = NYCTFeed(feed_id)
-            except Exception:
-                continue
-                
-            for trip in feed.trips:
-                for stop_time in trip.stop_time_updates:
-                    stop_base = stop_time.stop_id[:-1] if stop_time.stop_id and len(stop_time.stop_id) > 1 else ""
-                    if stop_base in STATIONS:
-                        direction = stop_time.stop_id[-1]
-                        arrival_ts = stop_time.arrival or stop_time.departure
-                        if not arrival_ts: continue
+                for trip in feed.trips:
+                    for stop_time in trip.stop_time_updates:
+                        stop_id = getattr(stop_time, 'stop_id', None)
+                        if not stop_id: continue
                         
-                        arr_epoch = arrival_ts.timestamp() if hasattr(arrival_ts, "timestamp") else float(arrival_ts)
-                        mins_away = (arr_epoch - now_ts) / 60
-                        if mins_away < -0.5: continue
-                        
-                        route = trip.route_id
-                        dest = getattr(trip, 'headsign_text', None) or "Unknown"
-                        
-                        arrivals_by_station[stop_base].append({
-                            "station_id": stop_base,
-                            "route": route,
-                            "dest": dest,
-                            "direction": direction,
-                            "mins": mins_away,
-                            "epoch": arr_epoch
-                        })
+                        stop_base = stop_id[:-1] if len(stop_id) > 1 else ""
+                        if stop_base in STATIONS:
+                            direction = stop_id[-1]
+                            arrival_ts = stop_time.arrival or stop_time.departure
+                            if not arrival_ts: continue
+                            
+                            arr_epoch = arrival_ts.timestamp() if hasattr(arrival_ts, "timestamp") else float(arrival_ts)
+                            mins_away = (arr_epoch - now_ts) / 60
+                            
+                            if mins_away < -0.5: continue
+                            
+                            route = trip.route_id
+                            dest = getattr(trip, 'headsign_text', None) or "Unknown"
+                            
+                            arrivals_by_station[stop_base].append({
+                                "station_id": stop_base,
+                                "route": route,
+                                "dest": dest,
+                                "direction": direction,
+                                "epoch": arr_epoch
+                            })
+            except Exception as e:
+                print(f"[TrainTime] Error fetching feed {feed_id}: {e}")
 
+        total_found = 0
         combined = []
         for s in STATIONS.keys():
             st_arr = arrivals_by_station[s]
-            st_arr.sort(key=lambda x: x["mins"])
+            st_arr.sort(key=lambda x: x["epoch"])
             combined.extend(st_arr[:10]) # Buffers for rotation
+            total_found += len(st_arr)
+            
+        print(f"[TrainTime] Fetch cycle complete. Found {total_found} total trains at {datetime.now().strftime('%H:%M:%S')}")
             
         with self.lock:
             self.trains = combined
@@ -355,10 +361,13 @@ class TraintimeApp:
 
         self._hide_center_message()
         sc = self.scale
+        now_ts = datetime.now().timestamp()
+        
         for i, row in enumerate(self._row_widgets):
             if i < count:
                 t = trains[i]
-                mins  = t["mins"]
+                arr_epoch = t["epoch"]
+                mins = (arr_epoch - now_ts) / 60
                 route = t["route"]
 
                 c = row["badge_canvas"]
