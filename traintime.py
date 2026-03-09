@@ -7,6 +7,7 @@ import tkinter as tk
 from tkinter import font as tkfont
 import threading
 import time
+import traceback
 from datetime import datetime
 
 try:
@@ -19,13 +20,15 @@ except ImportError:
 STATION_STOP_ID = "R32"          # Union St, Brooklyn (R train)
 STATION_NAME    = "Union St"
 BOROUGH         = "Brooklyn"
-FEED_ID         = "nqrw"         # MTA feed for N/Q/R/W trains
+FEED_ID         = "R"            # MTA feed route (nyct-gtfs v2.1.0+)
 MAX_TRAINS      = 8              # rows to display
 REFRESH_SECS    = 30             # how often to poll the API
+RETRY_BASE_SECS = 5              # base delay for retry on error
+RETRY_MAX_SECS  = 120            # max delay cap for retry backoff
 
 # Direction labels
 DIRECTION_LABELS = {
-    "N": "↑ Manhattan / Queens",
+    "N": "↑ Manhattan",
     "S": "↓ Bay Ridge"
 }
 
@@ -70,7 +73,9 @@ class TraintimeApp:
 
         self.trains = []
         self.last_updated = None
-        self.status_msg = "Loading…"
+        self.status_msg = "Connecting…"
+        self.is_error = False
+        self.consecutive_errors = 0
         self.lock = threading.Lock()
 
         self._build_ui()
@@ -83,6 +88,7 @@ class TraintimeApp:
 
         # Fonts — pick sizes based on screen width
         scale = max(0.5, sw / 1280)
+        self.scale = scale
         self.fnt_title   = tkfont.Font(family="DejaVu Sans", size=int(24*scale), weight="bold")
         self.fnt_sub     = tkfont.Font(family="DejaVu Sans", size=int(12*scale))
         self.fnt_header  = tkfont.Font(family="DejaVu Sans", size=int(11*scale), weight="bold")
@@ -91,6 +97,7 @@ class TraintimeApp:
         self.fnt_min     = tkfont.Font(family="DejaVu Sans", size=int(11*scale))
         self.fnt_dest    = tkfont.Font(family="DejaVu Sans", size=int(13*scale))
         self.fnt_status  = tkfont.Font(family="DejaVu Sans", size=int(10*scale))
+        self.fnt_message = tkfont.Font(family="DejaVu Sans", size=int(18*scale))
 
         # ── Header bar ──────────────────────────────────────────────────────────
         header = tk.Frame(self.root, bg=HEADER_COLOR, pady=int(12*scale))
@@ -144,6 +151,10 @@ class TraintimeApp:
         self.rows_frame.columnconfigure(2, minsize=int(80*scale))
         self.rows_frame.columnconfigure(3, minsize=int(120*scale))
 
+        # Center message label (for loading / error / no trains)
+        self.center_message = tk.Label(self.rows_frame, text="", font=self.fnt_message,
+                                       bg=BG_COLOR, fg=TEXT_SECONDARY, anchor="center")
+
         # Pre-create row label sets (reuse, don't destroy/recreate every tick)
         self._row_widgets = []
         for i in range(MAX_TRAINS):
@@ -157,7 +168,6 @@ class TraintimeApp:
             badge_canvas.grid(row=i, column=0, sticky="nsew",
                               pady=int(3*scale), padx=int(8*scale))
             row["badge_canvas"] = badge_canvas
-            row["badge_scale"]  = scale
             row["badge_bg"]     = bg
 
             # Destination
@@ -193,17 +203,55 @@ class TraintimeApp:
                                      bg=HEADER_COLOR, fg=TEXT_SECONDARY)
         self.footer_label.pack()
 
+        # Show loading state on startup
+        self._show_center_message("🔄  Connecting to MTA…")
+
         self._tick_clock()
+
+    # ── Center Message ───────────────────────────────────────────────────────────
+    def _show_center_message(self, text, color=None):
+        """Show a centered message and hide all train rows."""
+        for row in self._row_widgets:
+            row["badge_canvas"].grid_remove()
+            row["dest"].grid_remove()
+            row["dir"].grid_remove()
+            row["mins"].pack_forget()
+            row["mins_unit"].pack_forget()
+            row["mins"].master.grid_remove()
+        self.center_message.config(text=text, fg=color or TEXT_SECONDARY)
+        self.center_message.place(relx=0.5, rely=0.4, anchor="center")
+
+    def _hide_center_message(self):
+        """Hide the center message and restore train row grid structure."""
+        self.center_message.place_forget()
+        sc = self.scale
+        for i, row in enumerate(self._row_widgets):
+            row["badge_canvas"].grid(row=i, column=0, sticky="nsew",
+                                     pady=int(3*sc), padx=int(8*sc))
+            row["dest"].grid(row=i, column=1, sticky="ew")
+            row["dir"].grid(row=i, column=2, sticky="ew")
+            row["mins"].master.grid(row=i, column=3, sticky="ew", padx=int(8*sc))
+            row["mins"].pack(side="right")
+            row["mins_unit"].pack(side="right", padx=(0, int(3*sc)))
 
     # ── Clock ────────────────────────────────────────────────────────────────────
     def _tick_clock(self):
         now = datetime.now()
         self.clock_label.config(text=now.strftime("%I:%M:%S %p").lstrip("0"))
-        if self.last_updated:
-            age = int((now - self.last_updated).total_seconds())
-            self.status_label.config(text=f"Updated {age}s ago")
+
+        with self.lock:
+            is_err = self.is_error
+            last = self.last_updated
+            msg = self.status_msg
+
+        if last and not is_err:
+            age = int((now - last).total_seconds())
+            self.status_label.config(text=f"Updated {age}s ago", fg=TEXT_SECONDARY)
+        elif is_err:
+            self.status_label.config(text=f"⚠ {msg}", fg=AMBER_COLOR)
         else:
-            self.status_label.config(text=self.status_msg)
+            self.status_label.config(text=msg, fg=TEXT_SECONDARY)
+
         self.root.after(1000, self._tick_clock)
 
     # ── Data Fetching (background thread) ────────────────────────────────────────
@@ -215,11 +263,26 @@ class TraintimeApp:
         while True:
             try:
                 self._fetch_trains()
+                with self.lock:
+                    self.is_error = False
+                    self.consecutive_errors = 0
+                self.root.after(0, self._update_ui)
+                time.sleep(REFRESH_SECS)
             except Exception as e:
                 with self.lock:
-                    self.status_msg = f"Error: {e}"
-            self.root.after(0, self._update_ui)
-            time.sleep(REFRESH_SECS)
+                    self.consecutive_errors += 1
+                    self.is_error = True
+                    self.status_msg = f"Retrying… ({self.consecutive_errors})"
+
+                # Show error in UI but keep any stale data visible
+                self.root.after(0, self._update_ui)
+
+                # Exponential backoff: 5, 10, 20, 40, 80, 120, 120, ...
+                delay = min(RETRY_BASE_SECS * (2 ** (self.consecutive_errors - 1)),
+                            RETRY_MAX_SECS)
+                print(f"[TrainTime] Error fetching data (attempt {self.consecutive_errors}): {e}")
+                traceback.print_exc()
+                time.sleep(delay)
 
     def _fetch_trains(self):
         feed = NYCTFeed(FEED_ID)
@@ -242,7 +305,10 @@ class TraintimeApp:
                     if mins_away < -0.5:  # already departed
                         continue
                     route = trip.route_id
-                    dest  = trip.trip.headsign or trip.nyct_trip_descriptor.train_id or "Unknown"
+                    # nyct-gtfs v2.1.0 API
+                    dest = getattr(trip, 'headsign_text', None) \
+                        or getattr(trip, 'nyc_train_id', None) \
+                        or "Unknown"
                     arrivals.append({
                         "route":     route,
                         "dest":      dest,
@@ -263,9 +329,28 @@ class TraintimeApp:
         with self.lock:
             trains = list(self.trains)
             last   = self.last_updated
+            is_err = self.is_error
+            err_count = self.consecutive_errors
 
         count = len(trains)
 
+        if count == 0 and last is None and not is_err:
+            # Still loading for the first time
+            self._show_center_message("🔄  Connecting to MTA…")
+            return
+        elif count == 0 and is_err and last is None:
+            # Never successfully loaded — show error
+            self._show_center_message("⚠  Can't reach MTA feed\nRetrying…", RED_COLOR)
+            return
+        elif count == 0 and not is_err:
+            # Successfully fetched but no trains
+            self._show_center_message("No trains scheduled")
+            return
+
+        # We have data to show — hide center message
+        self._hide_center_message()
+
+        sc = self.scale
         for i, row in enumerate(self._row_widgets):
             if i < count:
                 t = trains[i]
@@ -274,7 +359,6 @@ class TraintimeApp:
 
                 # Badge
                 c = row["badge_canvas"]
-                sc = row["badge_scale"]
                 c.delete("all")
                 color      = ROUTE_COLORS.get(route, "#666")
                 text_color = ROUTE_TEXT_COLORS.get(route, "#000")
@@ -305,14 +389,9 @@ class TraintimeApp:
                     row["mins"].config(text=t_obj.strftime("%I:%M").lstrip("0"), fg=TEXT_PRIMARY)
                     row["mins_unit"].config(text="")
                 else:
-                    color = GREEN_COLOR if mins > 5 else (AMBER_COLOR if mins > 2 else RED_COLOR)
-                    row["mins"].config(text=str(int(mins)), fg=color)
+                    c = GREEN_COLOR if mins > 5 else (AMBER_COLOR if mins > 2 else RED_COLOR)
+                    row["mins"].config(text=str(int(mins)), fg=c)
                     row["mins_unit"].config(text="min")
-
-                # Show row
-                for widget in [row["dest"], row["dir"], row["mins"], row["mins_unit"]]:
-                    widget.grid()
-                row["badge_canvas"].grid()
             else:
                 # Hide unused rows
                 c = row["badge_canvas"]
@@ -323,9 +402,10 @@ class TraintimeApp:
                 row["mins_unit"].config(text="")
 
         if last:
-            self.footer_label.config(
-                text=f"MTA GTFS-RT · Union St (R32) · Refreshes every {REFRESH_SECS}s · ESC to quit"
-            )
+            status = f"MTA GTFS-RT · Union St (R32) · Refreshes every {REFRESH_SECS}s · ESC to quit"
+            if is_err:
+                status = f"⚠ Connection lost (retrying…) · Showing data from {last.strftime('%I:%M %p').lstrip('0')} · ESC to quit"
+            self.footer_label.config(text=status)
 
 
 # ── Entry Point ──────────────────────────────────────────────────────────────────

@@ -1,0 +1,18 @@
+[Unit]
+Description=TrainTime MTA Display
+After=network-online.target graphical.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=stan
+Environment=DISPLAY=:0
+Environment=XAUTHORITY=/home/stan/.Xauthority
+WorkingDirectory=/home/stan/traintime
+ExecStartPre=/bin/sleep 10
+ExecStart=/usr/bin/python3 /home/stan/traintime/traintime.py
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=graphical.target

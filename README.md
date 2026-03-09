@@ -10,31 +10,69 @@ A real-time MTA train schedule display for the **Union St. (R)** station in Broo
 - 🔄 Auto-refreshes every 30 seconds from the MTA GTFS-Realtime feed
 - 🖥️ Fullscreen `tkinter` UI — great for a dedicated display
 - ⏱️ Color-coded countdowns (green → amber → red as train approaches)
+- 🔁 Automatic retry with exponential backoff on connection errors
 - 📡 No API key required
 
-## Requirements
+## Quick Start
 
-- Python 3.7+
-- `nyct-gtfs` library
-
-## Install
+### 1. Clone the repo
 
 ```bash
-pip3 install nyct-gtfs --break-system-packages
+git clone https://github.com/stanchanpsu/traintime.git
+cd traintime
 ```
 
-## Run
+### 2. Install dependencies
+
+```bash
+pip3 install -r requirements.txt --break-system-packages
+```
+
+### 3. Run
 
 ```bash
 python3 traintime.py
 ```
 
-Press **Escape** to quit the fullscreen app.
+Press **Escape** to quit the fullscreen app, or **F11** to toggle fullscreen.
 
-## Running on Raspberry Pi
+## Raspberry Pi Setup
 
-Make sure a display is connected. To run over SSH with a display:
+### Prerequisites
+
+- Raspberry Pi 3 or newer
+- Display connected via HDMI
+- Internet connection
+- Raspberry Pi OS with desktop (for tkinter/X11)
+
+### One-Command Setup
+
+After cloning, run the setup script to install dependencies and configure auto-start on boot:
+
+```bash
+chmod +x setup.sh
+./setup.sh
+```
+
+This will:
+1. Install Python dependencies
+2. Set up a systemd service for auto-start on boot
+3. Optionally start the app immediately
+
+### Running over SSH
+
+If you want to run manually over SSH (with a display connected to the Pi):
 
 ```bash
 export DISPLAY=:0 && python3 traintime.py
+```
+
+### Useful Commands
+
+```bash
+sudo systemctl start traintime    # Start the app
+sudo systemctl stop traintime     # Stop the app
+sudo systemctl restart traintime  # Restart
+sudo systemctl status traintime   # Check status
+journalctl -u traintime -f        # View live logs
 ```
