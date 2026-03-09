@@ -107,9 +107,9 @@ class TraintimeApp:
         # Increased scaling factor by 1.8x to make fonts and UI elements much bigger
         scale = max(0.5, sw / 1280) * 1.8
         self.scale = scale
-        self.fnt_title   = tkfont.Font(family="DejaVu Sans", size=int(24*scale), weight="bold")
-        self.fnt_sub     = tkfont.Font(family="DejaVu Sans", size=int(12*scale))
-        self.fnt_header  = tkfont.Font(family="DejaVu Sans", size=int(11*scale), weight="bold")
+        self.fnt_title   = tkfont.Font(family="DejaVu Sans", size=int(22*scale), weight="bold")
+        self.fnt_sub     = tkfont.Font(family="DejaVu Sans", size=int(11*scale))
+        self.fnt_header  = tkfont.Font(family="DejaVu Sans", size=int(10*scale), weight="bold")
         self.fnt_route   = tkfont.Font(family="DejaVu Sans", size=int(14*scale), weight="bold")
         self.fnt_time    = tkfont.Font(family="DejaVu Sans", size=int(16*scale), weight="bold")
         self.fnt_min     = tkfont.Font(family="DejaVu Sans", size=int(11*scale))
@@ -117,19 +117,21 @@ class TraintimeApp:
         self.fnt_status  = tkfont.Font(family="DejaVu Sans", size=int(10*scale))
         self.fnt_message = tkfont.Font(family="DejaVu Sans", size=int(18*scale))
 
-        # ── Footer bar (Clock/Status) ───────────────────────────────────────────
-        footer = tk.Frame(self.root, bg=BG_COLOR, pady=int(4*scale))
-        footer.pack(side="bottom", fill="x", padx=int(16*scale))
+        # ── Slim Header (Clock & Status on one line) ───────────────────────────
+        header = tk.Frame(self.root, bg=BG_COLOR, pady=int(2*scale))
+        header.pack(side="top", fill="x", padx=int(16*scale))
 
-        right = tk.Frame(footer, bg=BG_COLOR)
-        right.pack(side="right")
+        # We'll put status left of the clock in a single right-aligned block
+        info_frame = tk.Frame(header, bg=BG_COLOR)
+        info_frame.pack(side="right")
 
-        self.clock_label = tk.Label(right, text="", font=self.fnt_time,
+        self.clock_label = tk.Label(info_frame, text="", font=self.fnt_time,
                                     bg=BG_COLOR, fg=TEXT_PRIMARY)
-        self.clock_label.pack(anchor="e")
-        self.status_label = tk.Label(right, text="", font=self.fnt_status,
+        self.clock_label.pack(side="right", padx=(int(8*scale), 0))
+        
+        self.status_label = tk.Label(info_frame, text="", font=self.fnt_status,
                                      bg=BG_COLOR, fg=TEXT_SECONDARY)
-        self.status_label.pack(anchor="e")
+        self.status_label.pack(side="right", pady=(int(4*scale), 0))
 
         # ── Train rows container ─────────────────────────────────────────────────
         self.rows_frame = tk.Frame(self.root, bg=BG_COLOR)
@@ -156,7 +158,7 @@ class TraintimeApp:
                                      height=int(28*scale), bg=bg,
                                      highlightthickness=0, bd=0)
             badge_canvas.grid(row=i, column=0, sticky="nsew",
-                              pady=int(4*scale), padx=int(8*scale))
+                              pady=int(8*scale), padx=int(8*scale))
             row["badge_canvas"] = badge_canvas
             row["badge_bg"]     = bg
 
@@ -215,8 +217,8 @@ class TraintimeApp:
         sc = self.scale
         for i, row in enumerate(self._row_widgets):
             row["badge_canvas"].grid(row=i, column=0, sticky="nsew",
-                                     pady=int(4*sc), padx=int(8*sc))
-            row["sta"].master.grid(row=i, column=1, sticky="w", padx=int(8*sc))
+                                     pady=int(8*sc), padx=int(8*sc))
+            row["sta"].master.grid(row=i, column=1, sticky="w", padx=int(8*sc), pady=int(8*sc))
             row["dir"].grid(row=i, column=2, sticky="ew")
             row["mins"].master.grid(row=i, column=3, sticky="ew", padx=int(8*sc))
             row["mins"].pack(side="right")
