@@ -26,6 +26,7 @@ TRAINS_PER_STATION = 5           # rows to display per station
 MAX_TRAINS      = TRAINS_PER_STATION
 REFRESH_SECS    = 10             # Fetch from MTA every 10s
 CYCLE_SECS      = 10             # seconds to show each station
+MIN_MINS_AWAY   = 5              # skip trains arriving in < 5 mins
 FULLSCREEN      = os.environ.get("FULLSCREEN", "1") != "0" # Set to 0 to run in a window
 RETRY_BASE_SECS = 5              # base delay for retry on error
 RETRY_MAX_SECS  = 120            # max delay cap for retry backoff
@@ -311,7 +312,7 @@ class TraintimeApp:
                             arr_epoch = arrival_ts.timestamp() if hasattr(arrival_ts, "timestamp") else float(arrival_ts)
                             mins_away = (arr_epoch - now_ts) / 60
                             
-                            if mins_away < -0.5: continue
+                            if mins_away < MIN_MINS_AWAY: continue
                             
                             route = trip.route_id
                             dest = getattr(trip, 'headsign_text', None) or "Unknown"
@@ -346,22 +347,27 @@ class TraintimeApp:
         with self.lock:
             if not self.station_ids: return
             current_id = self.station_ids[self.station_index]
-            trains = [t for t in self.trains if t.get("station_id") == current_id][:MAX_TRAINS]
+            now_ts = datetime.now().timestamp()
+            
+            # Filter live for trains >= MIN_MINS_AWAY
+            trains = [t for t in self.trains if t.get("station_id") == current_id]
+            trains = [t for t in trains if (t["epoch"] - now_ts)/60 >= MIN_MINS_AWAY][:MAX_TRAINS]
+            
             self.station_label.config(text=STATIONS.get(current_id, ""))
             last = self.last_updated
             is_err = self.is_error
-
+        
         count = len(trains)
-        if count == 0 and last is None and not is_err:
-            self._show_center_message("🔄  Connecting…")
+        if count == 0:
+            if last is None and not is_err:
+                self._show_center_message("🔄  Connecting…")
+            elif not is_err:
+                self._show_center_message(f"Next train in >{MIN_MINS_AWAY}m")
             return
-        elif count == 0 and not is_err:
-            self._show_center_message("No trains scheduled")
-            return
-
+        
         self._hide_center_message()
         sc = self.scale
-        now_ts = datetime.now().timestamp()
+        # note: now_ts already captured above
         
         for i, row in enumerate(self._row_widgets):
             if i < count:
