@@ -44,6 +44,7 @@ ROUTE_COLORS = {
     "N": "#FCCC0A",
     "Q": "#FCCC0A",
     "W": "#FCCC0A",
+    "D": "#FF6319",  # Orange (IND Sixth Avenue)
     "F": "#FF6319",  # Orange (IND Sixth Avenue)
     "G": "#6CBE45",  # Light Green (IND Crosstown)
 }
@@ -52,6 +53,7 @@ ROUTE_TEXT_COLORS = {
     "N": "#000000",
     "Q": "#000000",
     "W": "#000000",
+    "D": "#FFFFFF",
     "F": "#FFFFFF",
     "G": "#FFFFFF",
 }
