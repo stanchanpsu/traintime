@@ -22,7 +22,7 @@ except ImportError:
 STATIONS        = {"R32": "Union St", "F23": "4 Av - 9 St"}
 BOROUGH         = "Brooklyn"
 FEED_IDS        = ["R", "F", "G"] # MTA feed routes (nyct-gtfs v2.1.0+)
-TRAINS_PER_STATION = 4           # rows to display per station
+TRAINS_PER_STATION = 5           # rows to display per station
 MAX_TRAINS      = TRAINS_PER_STATION
 REFRESH_SECS    = 30             # how often to poll the API
 CYCLE_SECS      = 10             # seconds to show each station
@@ -113,8 +113,8 @@ class TraintimeApp:
             sw = 720
             sh = 480
 
-        # Proportional scaling for single-view (No destination, 4 rows)
-        scale = max(0.5, sw / 1280) * 2.3
+        # Proportional scaling for single-view (No destination, 5 rows)
+        scale = max(0.5, sw / 1280) * 2.1
         self.scale = scale
         self.fnt_title   = tkfont.Font(family="DejaVu Sans", size=int(26*scale), weight="bold")
         self.fnt_sub     = tkfont.Font(family="DejaVu Sans", size=int(11*scale))
@@ -171,14 +171,14 @@ class TraintimeApp:
                                      height=int(50*scale), bg=bg,
                                      highlightthickness=0, bd=0)
             badge_canvas.grid(row=i, column=0, sticky="nsew",
-                              pady=int(6*scale), padx=int(8*scale))
+                              pady=int(4*scale), padx=int(8*scale))
             row["badge_canvas"] = badge_canvas
             row["badge_bg"]     = bg
 
             # Direction
             dir_lbl = tk.Label(self.rows_frame, text="", font=self.fnt_status,
                                bg=bg, fg=TEXT_SECONDARY, anchor="w")
-            dir_lbl.grid(row=i, column=1, sticky="ew", padx=int(16*scale), pady=int(6*scale))
+            dir_lbl.grid(row=i, column=1, sticky="ew", padx=int(16*scale), pady=int(4*scale))
             row["dir"] = dir_lbl
 
             # Arrival time
@@ -215,8 +215,8 @@ class TraintimeApp:
         sc = self.scale
         for i, row in enumerate(self._row_widgets):
             row["badge_canvas"].grid(row=i, column=0, sticky="nsew",
-                                     pady=int(6*sc), padx=int(8*sc))
-            row["dir"].grid(row=i, column=1, sticky="ew", padx=int(16*sc), pady=int(6*sc))
+                                     pady=int(4*sc), padx=int(8*sc))
+            row["dir"].grid(row=i, column=1, sticky="ew", padx=int(16*sc), pady=int(4*sc))
             row["mins"].master.grid(row=i, column=2, sticky="ew", padx=int(8*sc))
             row["mins"].pack(side="right")
             row["mins_unit"].pack(side="right", padx=(0, int(4*sc)))
