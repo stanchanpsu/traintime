@@ -121,14 +121,6 @@ class TraintimeApp:
         header = tk.Frame(self.root, bg=HEADER_COLOR, pady=int(4*scale))
         header.pack(fill="x")
 
-        left = tk.Frame(header, bg=HEADER_COLOR)
-        left.pack(side="left", padx=int(16*scale))
-
-        tk.Label(left, text="MTA TrainTime", font=self.fnt_title,
-                 bg=HEADER_COLOR, fg=TEXT_PRIMARY).pack(anchor="w")
-        tk.Label(left, text=f"{BOROUGH} · R train", font=self.fnt_sub,
-                 bg=HEADER_COLOR, fg=TEXT_SECONDARY).pack(anchor="w")
-
         right = tk.Frame(header, bg=HEADER_COLOR)
         right.pack(side="right", padx=int(16*scale))
 
@@ -138,26 +130,6 @@ class TraintimeApp:
         self.status_label = tk.Label(right, text="", font=self.fnt_status,
                                      bg=HEADER_COLOR, fg=TEXT_SECONDARY)
         self.status_label.pack(anchor="e")
-
-        # ── Column headers ───────────────────────────────────────────────────────
-        col_frame = tk.Frame(self.root, bg=PANEL_BG, pady=int(2*scale))
-        col_frame.pack(fill="x", padx=int(16*scale), pady=(int(4*scale), 0))
-
-        col_frame.columnconfigure(0, minsize=int(40*scale))   # route badge
-        col_frame.columnconfigure(1, weight=1)                # station AND destination
-        col_frame.columnconfigure(2, minsize=int(130*scale))  # direction (wider)
-        col_frame.columnconfigure(3, minsize=int(120*scale))  # time
-
-        headers = [("", 0), ("Station / Destination", 1), ("Dir.", 2), ("", 3)]
-        anchors = ["center",  "w",  "center", "e"]
-        for text, col in headers:
-            tk.Label(col_frame, text=text, font=self.fnt_header,
-                     bg=PANEL_BG, fg=TEXT_SECONDARY, padx=int(8*scale),
-                     anchor=anchors[col]).grid(row=0, column=col, sticky="ew")
-
-        # Separator
-        sep = tk.Frame(self.root, bg=BORDER_COLOR, height=1)
-        sep.pack(fill="x", padx=int(16*scale))
 
         # ── Train rows container ─────────────────────────────────────────────────
         self.rows_frame = tk.Frame(self.root, bg=BG_COLOR)
