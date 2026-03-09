@@ -8,6 +8,7 @@ from tkinter import font as tkfont
 import threading
 import time
 import traceback
+import os
 from datetime import datetime
 
 try:
@@ -23,6 +24,7 @@ BOROUGH         = "Brooklyn"
 FEED_ID         = "R"            # MTA feed route (nyct-gtfs v2.1.0+)
 MAX_TRAINS      = 4              # rows to display (reduced from 8)
 REFRESH_SECS    = 30             # how often to poll the API
+FULLSCREEN      = os.environ.get("FULLSCREEN", "1") != "0" # Set to 0 to run in a window
 RETRY_BASE_SECS = 5              # base delay for retry on error
 RETRY_MAX_SECS  = 120            # max delay cap for retry backoff
 
@@ -66,7 +68,10 @@ class TraintimeApp:
         self.root = root
         self.root.title("TrainTime — Union St.")
         self.root.configure(bg=BG_COLOR)
-        self.root.attributes("-fullscreen", True)
+        if FULLSCREEN:
+            self.root.attributes("-fullscreen", True)
+        else:
+            self.root.geometry("800x480") # Default window size
         self.root.bind("<Escape>", lambda e: self.root.destroy())
         self.root.bind("<F11>",    lambda e: self.root.attributes("-fullscreen",
                                          not self.root.attributes("-fullscreen")))
