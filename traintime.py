@@ -74,7 +74,7 @@ RED_COLOR       = "#EF4444"
 class TraintimeApp:
     def __init__(self, root):
         self.root = root
-        self.root.title("TrainTime — Union St.")
+        self.root.title("TrainTime")
         self.root.configure(bg=BG_COLOR)
         if FULLSCREEN:
             self.root.attributes("-fullscreen", True)
@@ -117,18 +117,18 @@ class TraintimeApp:
         self.fnt_status  = tkfont.Font(family="DejaVu Sans", size=int(10*scale))
         self.fnt_message = tkfont.Font(family="DejaVu Sans", size=int(18*scale))
 
-        # ── Header bar ──────────────────────────────────────────────────────────
-        header = tk.Frame(self.root, bg=HEADER_COLOR, pady=int(4*scale))
-        header.pack(fill="x")
+        # ── Footer bar (Clock/Status) ───────────────────────────────────────────
+        footer = tk.Frame(self.root, bg=BG_COLOR, pady=int(4*scale))
+        footer.pack(side="bottom", fill="x", padx=int(16*scale))
 
-        right = tk.Frame(header, bg=HEADER_COLOR)
-        right.pack(side="right", padx=int(16*scale))
+        right = tk.Frame(footer, bg=BG_COLOR)
+        right.pack(side="right")
 
         self.clock_label = tk.Label(right, text="", font=self.fnt_time,
-                                    bg=HEADER_COLOR, fg=TEXT_PRIMARY)
+                                    bg=BG_COLOR, fg=TEXT_PRIMARY)
         self.clock_label.pack(anchor="e")
         self.status_label = tk.Label(right, text="", font=self.fnt_status,
-                                     bg=HEADER_COLOR, fg=TEXT_SECONDARY)
+                                     bg=BG_COLOR, fg=TEXT_SECONDARY)
         self.status_label.pack(anchor="e")
 
         # ── Train rows container ─────────────────────────────────────────────────
