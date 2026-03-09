@@ -100,7 +100,7 @@ class TraintimeApp:
             sw = self.root.winfo_screenwidth()
             sh = self.root.winfo_screenheight()
         else:
-            sw = 800
+            sw = 720
             sh = 480
 
         # Fonts — pick sizes based on screen width
