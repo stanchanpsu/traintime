@@ -8,6 +8,7 @@ Type=simple
 User=stan
 Environment=DISPLAY=:0
 Environment=XAUTHORITY=/home/stan/.Xauthority
+Environment=MIN_THRESHOLD_MINS=3
 WorkingDirectory=/home/stan/traintime
 ExecStartPre=/bin/sleep 10
 ExecStart=/usr/bin/python3 /home/stan/traintime/traintime.py
