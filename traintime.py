@@ -21,7 +21,7 @@ STATION_STOP_ID = "R32"          # Union St, Brooklyn (R train)
 STATION_NAME    = "Union St"
 BOROUGH         = "Brooklyn"
 FEED_ID         = "R"            # MTA feed route (nyct-gtfs v2.1.0+)
-MAX_TRAINS      = 8              # rows to display
+MAX_TRAINS      = 4              # rows to display (reduced from 8)
 REFRESH_SECS    = 30             # how often to poll the API
 RETRY_BASE_SECS = 5              # base delay for retry on error
 RETRY_MAX_SECS  = 120            # max delay cap for retry backoff
@@ -87,7 +87,8 @@ class TraintimeApp:
         sh = self.root.winfo_screenheight()
 
         # Fonts — pick sizes based on screen width
-        scale = max(0.5, sw / 1280)
+        # Increased scaling factor by 1.8x to make fonts and UI elements much bigger
+        scale = max(0.5, sw / 1280) * 1.8
         self.scale = scale
         self.fnt_title   = tkfont.Font(family="DejaVu Sans", size=int(24*scale), weight="bold")
         self.fnt_sub     = tkfont.Font(family="DejaVu Sans", size=int(12*scale))
