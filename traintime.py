@@ -4,13 +4,15 @@ Designed for Raspberry Pi. Fullscreen tkinter UI with live GTFS-RT data.
 Cycles between stations every 10 seconds.
 """
 
-import tkinter as tk
-from tkinter import font as tkfont
-import threading
-import time
-import traceback
-import os
 from datetime import datetime
+import os
+import traceback
+import time
+import threading
+from tkinter import font as tkfont
+import tkinter as tk
+print("Script starting...")
+
 
 try:
     from nyct_gtfs import NYCTFeed
@@ -19,19 +21,22 @@ except ImportError:
     raise
 
 # ── Configuration ──────────────────────────────────────────────────────────────
-STATIONS        = {"R32": "Union St", "F23": "4 Av - 9 St"}
-BOROUGH         = "Brooklyn"
-FEED_IDS        = ["R", "F", "G"] # MTA feed routes (nyct-gtfs v2.1.0+)
+STATIONS = {"R32": "Union St", "F23": "4 Av - 9 St"}
+BOROUGH = "Brooklyn"
+FEED_IDS = ["R", "F", "G"]  # MTA feed routes (nyct-gtfs v2.1.0+)
 TRAINS_PER_STATION = 5           # rows to display per station
-MAX_TRAINS      = TRAINS_PER_STATION
-REFRESH_SECS    = 10             # Fetch from MTA every 10s
-CYCLE_SECS      = 10             # seconds to show each station
-MIN_MINS_AWAY   = float(os.environ.get("MIN_THRESHOLD_MINS", "5")) # skip trains arriving in < threshold mins
-print(f"[DEBUG] MIN_THRESHOLD_MINS env var: {os.environ.get('MIN_THRESHOLD_MINS', 'NOT SET')}")
+MAX_TRAINS = TRAINS_PER_STATION
+REFRESH_SECS = 10             # Fetch from MTA every 10s
+CYCLE_SECS = 10             # seconds to show each station
+# skip trains arriving in < threshold mins
+MIN_MINS_AWAY = float(os.environ.get("MIN_THRESHOLD_MINS", "5"))
+print(
+    f"[DEBUG] MIN_THRESHOLD_MINS env var: {os.environ.get('MIN_THRESHOLD_MINS', 'NOT SET')}")
 print(f"[DEBUG] MIN_MINS_AWAY: {MIN_MINS_AWAY}")
-FULLSCREEN      = os.environ.get("FULLSCREEN", "1") != "0" # Set to 0 to run in a window
+# Set to 0 to run in a window
+FULLSCREEN = os.environ.get("FULLSCREEN", "1") != "0"
 RETRY_BASE_SECS = 5              # base delay for retry on error
-RETRY_MAX_SECS  = 120            # max delay cap for retry backoff
+RETRY_MAX_SECS = 120            # max delay cap for retry backoff
 
 # Direction labels and colors
 DIRECTION_LABELS = {
@@ -71,18 +76,20 @@ ROUTE_TEXT_COLORS = {
 }
 
 # ── Color Palette ───────────────────────────────────────────────────────────────
-BG_COLOR        = "#0A0E1A"
-PANEL_BG        = "#111827"
-HEADER_COLOR    = "#1E2A40"
-TEXT_PRIMARY    = "#F0F4FF"
-TEXT_SECONDARY  = "#8896B0"
-ACCENT_COLOR    = "#3B82F6"
-BORDER_COLOR    = "#1E2A3D"
-GREEN_COLOR     = "#22C55E"
-AMBER_COLOR     = "#F59E0B"
-RED_COLOR       = "#EF4444"
+BG_COLOR = "#0A0E1A"
+PANEL_BG = "#111827"
+HEADER_COLOR = "#1E2A40"
+TEXT_PRIMARY = "#F0F4FF"
+TEXT_SECONDARY = "#8896B0"
+ACCENT_COLOR = "#3B82F6"
+BORDER_COLOR = "#1E2A3D"
+GREEN_COLOR = "#22C55E"
+AMBER_COLOR = "#F59E0B"
+RED_COLOR = "#EF4444"
 
 # ── App ─────────────────────────────────────────────────────────────────────────
+
+
 class TraintimeApp:
     def __init__(self, root):
         self.root = root
@@ -92,10 +99,11 @@ class TraintimeApp:
             self.root.attributes("-fullscreen", True)
             self.root.config(cursor="none")
         else:
-            self.root.geometry("720x480") # Default window size for local testing
+            # Default window size for local testing
+            self.root.geometry("720x480")
         self.root.bind("<Escape>", lambda e: self.root.destroy())
-        self.root.bind("<F11>",    lambda e: self.root.attributes("-fullscreen",
-                                         not self.root.attributes("-fullscreen")))
+        self.root.bind("<F11>", lambda e: self.root.attributes("-fullscreen",
+                                                               not self.root.attributes("-fullscreen")))
         # Manual cycle on click/touch
         self.root.bind("<Button-1>", self._manual_cycle)
 
@@ -105,7 +113,7 @@ class TraintimeApp:
         self.is_error = False
         self.consecutive_errors = 0
         self.lock = threading.Lock()
-        
+
         self.station_ids = list(STATIONS.keys())
         self.station_index = 0
         self.cycle_after_id = None
@@ -126,15 +134,20 @@ class TraintimeApp:
         # Proportional scaling for single-view (No destination, 5 rows)
         scale = max(0.5, sw / 1280) * 2.3
         self.scale = scale
-        self.fnt_title   = tkfont.Font(family="DejaVu Sans", size=int(26*scale), weight="bold")
-        self.fnt_sub     = tkfont.Font(family="DejaVu Sans", size=int(11*scale))
-        self.fnt_header  = tkfont.Font(family="DejaVu Sans", size=int(10*scale), weight="bold")
-        self.fnt_route   = tkfont.Font(family="DejaVu Sans", size=int(28*scale), weight="bold")
-        self.fnt_time    = tkfont.Font(family="DejaVu Sans", size=int(26*scale), weight="bold")
-        self.fnt_min     = tkfont.Font(family="DejaVu Sans", size=int(14*scale))
-        self.fnt_dest    = tkfont.Font(family="DejaVu Sans", size=int(16*scale))
-        self.fnt_status  = tkfont.Font(family="DejaVu Sans", size=int(20*scale))
-        self.fnt_message = tkfont.Font(family="DejaVu Sans", size=int(22*scale))
+        self.fnt_title = tkfont.Font(
+            family="DejaVu Sans", size=int(26*scale), weight="bold")
+        self.fnt_sub = tkfont.Font(family="DejaVu Sans", size=int(11*scale))
+        self.fnt_header = tkfont.Font(
+            family="DejaVu Sans", size=int(10*scale), weight="bold")
+        self.fnt_route = tkfont.Font(
+            family="DejaVu Sans", size=int(28*scale), weight="bold")
+        self.fnt_time = tkfont.Font(
+            family="DejaVu Sans", size=int(26*scale), weight="bold")
+        self.fnt_min = tkfont.Font(family="DejaVu Sans", size=int(14*scale))
+        self.fnt_dest = tkfont.Font(family="DejaVu Sans", size=int(16*scale))
+        self.fnt_status = tkfont.Font(family="DejaVu Sans", size=int(20*scale))
+        self.fnt_message = tkfont.Font(
+            family="DejaVu Sans", size=int(22*scale))
 
         # ── Slim Header (Clock & Status on one line) ───────────────────────────
         header = tk.Frame(self.root, bg=BG_COLOR, pady=int(2*scale))
@@ -152,7 +165,7 @@ class TraintimeApp:
         self.clock_label = tk.Label(right, text="", font=self.fnt_time,
                                     bg=BG_COLOR, fg=TEXT_PRIMARY)
         self.clock_label.pack(side="right", padx=(int(8*scale), 0))
-        
+
         self.status_label = tk.Label(right, text="", font=self.fnt_status,
                                      bg=BG_COLOR, fg=TEXT_SECONDARY)
         self.status_label.pack(side="right")
@@ -162,7 +175,8 @@ class TraintimeApp:
         self.rows_frame.pack(fill="both", expand=True, padx=int(16*scale),
                              pady=(int(2*scale), int(4*scale)))
         for c in [0, 1, 2]:
-            self.rows_frame.columnconfigure(c, weight=(0 if c in [0,2] else 1))
+            self.rows_frame.columnconfigure(
+                c, weight=(0 if c in [0, 2] else 1))
         self.rows_frame.columnconfigure(0, minsize=int(80*scale))
         self.rows_frame.columnconfigure(2, minsize=int(160*scale))
 
@@ -183,12 +197,13 @@ class TraintimeApp:
             badge_canvas.grid(row=i, column=0, sticky="nsew",
                               pady=int(2*scale), padx=int(8*scale))
             row["badge_canvas"] = badge_canvas
-            row["badge_bg"]     = bg
+            row["badge_bg"] = bg
 
             # Direction
             dir_lbl = tk.Label(self.rows_frame, text="", font=self.fnt_status,
                                bg=bg, fg=TEXT_SECONDARY, anchor="w")
-            dir_lbl.grid(row=i, column=1, sticky="ew", padx=int(16*scale), pady=int(2*scale))
+            dir_lbl.grid(row=i, column=1, sticky="ew",
+                         padx=int(16*scale), pady=int(2*scale))
             row["dir"] = dir_lbl
 
             # Arrival time
@@ -200,11 +215,11 @@ class TraintimeApp:
             mins_unit = tk.Label(time_frame, text="", font=self.fnt_status,
                                  bg=bg, fg=TEXT_SECONDARY, anchor="e")
             mins_unit.pack(side="right", padx=(0, int(4*scale)))
-            row["mins"]      = mins_lbl
+            row["mins"] = mins_lbl
             row["mins_unit"] = mins_unit
 
             self._row_widgets.append(row)
-        
+
         # Show loading state on startup
         self._show_center_message("🔄  Connecting to MTA…")
         self._tick_clock()
@@ -226,8 +241,10 @@ class TraintimeApp:
         for i, row in enumerate(self._row_widgets):
             row["badge_canvas"].grid(row=i, column=0, sticky="nsew",
                                      pady=int(2*sc), padx=int(8*sc))
-            row["dir"].grid(row=i, column=1, sticky="ew", padx=int(16*sc), pady=int(2*sc))
-            row["mins"].master.grid(row=i, column=2, sticky="ew", padx=int(8*sc))
+            row["dir"].grid(row=i, column=1, sticky="ew",
+                            padx=int(16*sc), pady=int(2*sc))
+            row["mins"].master.grid(
+                row=i, column=2, sticky="ew", padx=int(8*sc))
             row["mins"].pack(side="right")
             row["mins_unit"].pack(side="right", padx=(0, int(4*sc)))
 
@@ -244,7 +261,8 @@ class TraintimeApp:
         if last and not is_err:
             age = int((now - last).total_seconds())
             if age > REFRESH_SECS * 2:
-                self.status_label.config(text=f"Stale ({age}s)", fg=AMBER_COLOR)
+                self.status_label.config(
+                    text=f"Stale ({age}s)", fg=AMBER_COLOR)
             else:
                 self.status_label.config(text=f"Live", fg=TEXT_SECONDARY)
         elif is_err:
@@ -265,9 +283,11 @@ class TraintimeApp:
         """Rotate through the stations."""
         with self.lock:
             if self.station_ids:
-                self.station_index = (self.station_index + 1) % len(self.station_ids)
+                self.station_index = (
+                    self.station_index + 1) % len(self.station_ids)
         self._update_ui()
-        self.cycle_after_id = self.root.after(CYCLE_SECS * 1000, self._cycle_loop)
+        self.cycle_after_id = self.root.after(
+            CYCLE_SECS * 1000, self._cycle_loop)
 
     # ── Data Fetching ────────────────────────────────────────────────────────────
     def _start_refresh_thread(self):
@@ -290,35 +310,41 @@ class TraintimeApp:
                     self.status_msg = f"Error ({self.consecutive_errors})"
                 print(f"[TrainTime] Error: {e}")
                 traceback.print_exc()
-                delay = min(RETRY_BASE_SECS * (2 ** (self.consecutive_errors - 1)), RETRY_MAX_SECS)
+                delay = min(
+                    RETRY_BASE_SECS * (2 ** (self.consecutive_errors - 1)), RETRY_MAX_SECS)
                 time.sleep(delay)
 
     def _fetch_trains(self):
         now_ts = datetime.now().timestamp()
         arrivals_by_station = {s: [] for s in STATIONS.keys()}
-        
+
         for feed_id in FEED_IDS:
             try:
                 feed = NYCTFeed(feed_id)
                 for trip in feed.trips:
                     for stop_time in trip.stop_time_updates:
                         stop_id = getattr(stop_time, 'stop_id', None)
-                        if not stop_id: continue
-                        
+                        if not stop_id:
+                            continue
+
                         stop_base = stop_id[:-1] if len(stop_id) > 1 else ""
                         if stop_base in STATIONS:
                             direction = stop_id[-1]
                             arrival_ts = stop_time.arrival or stop_time.departure
-                            if not arrival_ts: continue
-                            
-                            arr_epoch = arrival_ts.timestamp() if hasattr(arrival_ts, "timestamp") else float(arrival_ts)
+                            if not arrival_ts:
+                                continue
+
+                            arr_epoch = arrival_ts.timestamp() if hasattr(
+                                arrival_ts, "timestamp") else float(arrival_ts)
                             mins_away = (arr_epoch - now_ts) / 60
-                            
-                            if mins_away < MIN_MINS_AWAY: continue
-                            
+
+                            if mins_away < MIN_MINS_AWAY:
+                                continue
+
                             route = trip.route_id
-                            dest = getattr(trip, 'headsign_text', None) or "Unknown"
-                            
+                            dest = getattr(trip, 'headsign_text',
+                                           None) or "Unknown"
+
                             arrivals_by_station[stop_base].append({
                                 "station_id": stop_base,
                                 "route": route,
@@ -334,11 +360,12 @@ class TraintimeApp:
         for s in STATIONS.keys():
             st_arr = arrivals_by_station[s]
             st_arr.sort(key=lambda x: x["epoch"])
-            combined.extend(st_arr[:10]) # Buffers for rotation
+            combined.extend(st_arr[:10])  # Buffers for rotation
             total_found += len(st_arr)
-            
-        print(f"[TrainTime] Fetch cycle complete. Found {total_found} total trains at {datetime.now().strftime('%H:%M:%S')}")
-            
+
+        print(
+            f"[TrainTime] Fetch cycle complete. Found {total_found} total trains at {datetime.now().strftime('%H:%M:%S')}")
+
         with self.lock:
             self.trains = combined
             self.last_updated = datetime.now()
@@ -347,18 +374,21 @@ class TraintimeApp:
     # ── UI Update ─────────────────────────────────────────────────────────────────
     def _update_ui(self):
         with self.lock:
-            if not self.station_ids: return
+            if not self.station_ids:
+                return
             current_id = self.station_ids[self.station_index]
             now_ts = datetime.now().timestamp()
-            
+
             # Filter live for trains >= MIN_MINS_AWAY
-            trains = [t for t in self.trains if t.get("station_id") == current_id]
-            trains = [t for t in trains if (t["epoch"] - now_ts)/60 >= MIN_MINS_AWAY][:MAX_TRAINS]
-            
+            trains = [t for t in self.trains if t.get(
+                "station_id") == current_id]
+            trains = [t for t in trains if (
+                t["epoch"] - now_ts)/60 >= MIN_MINS_AWAY][:MAX_TRAINS]
+
             self.station_label.config(text=STATIONS.get(current_id, ""))
             last = self.last_updated
             is_err = self.is_error
-        
+
         count = len(trains)
         if count == 0:
             if last is None and not is_err:
@@ -366,11 +396,11 @@ class TraintimeApp:
             elif not is_err:
                 self._show_center_message(f"Next train in >{MIN_MINS_AWAY}m")
             return
-        
+
         self._hide_center_message()
         sc = self.scale
         # note: now_ts already captured above
-        
+
         for i, row in enumerate(self._row_widgets):
             if i < count:
                 t = trains[i]
@@ -382,8 +412,10 @@ class TraintimeApp:
                 c.delete("all")
                 color = ROUTE_COLORS.get(route, "#666")
                 text_color = ROUTE_TEXT_COLORS.get(route, "#000")
-                c.create_oval(0, 0, int(60*sc), int(60*sc), fill=color, outline="")
-                c.create_text(int(30*sc), int(30*sc), text=route, font=self.fnt_route, fill=text_color)
+                c.create_oval(0, 0, int(60*sc), int(60*sc),
+                              fill=color, outline="")
+                c.create_text(int(30*sc), int(30*sc), text=route,
+                              font=self.fnt_route, fill=text_color)
 
                 direction = t["direction"]
 
@@ -402,7 +434,8 @@ class TraintimeApp:
                     row["mins"].config(text="1", fg=AMBER_COLOR)
                     row["mins_unit"].config(text="min")
                 else:
-                    clr = GREEN_COLOR if mins > 5 else (AMBER_COLOR if mins > 2 else RED_COLOR)
+                    clr = GREEN_COLOR if mins > 5 else (
+                        AMBER_COLOR if mins > 2 else RED_COLOR)
                     row["mins"].config(text=str(int(mins)), fg=clr)
                     row["mins_unit"].config(text="min")
             else:
@@ -411,8 +444,9 @@ class TraintimeApp:
                 row["mins"].config(text="")
                 row["mins_unit"].config(text="")
 
+
 # ── Entry Point ──────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
     root = tk.Tk()
-    app  = TraintimeApp(root)
+    app = TraintimeApp(root)
     root.mainloop()
