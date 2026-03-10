@@ -27,6 +27,8 @@ MAX_TRAINS      = TRAINS_PER_STATION
 REFRESH_SECS    = 10             # Fetch from MTA every 10s
 CYCLE_SECS      = 10             # seconds to show each station
 MIN_MINS_AWAY   = float(os.environ.get("MIN_THRESHOLD_MINS", "5")) # skip trains arriving in < threshold mins
+print(f"[DEBUG] MIN_THRESHOLD_MINS env var: {os.environ.get('MIN_THRESHOLD_MINS', 'NOT SET')}")
+print(f"[DEBUG] MIN_MINS_AWAY: {MIN_MINS_AWAY}")
 FULLSCREEN      = os.environ.get("FULLSCREEN", "1") != "0" # Set to 0 to run in a window
 RETRY_BASE_SECS = 5              # base delay for retry on error
 RETRY_MAX_SECS  = 120            # max delay cap for retry backoff
@@ -34,7 +36,7 @@ RETRY_MAX_SECS  = 120            # max delay cap for retry backoff
 # Direction labels and colors
 DIRECTION_LABELS = {
     "N": "↑ Manh/Queens",
-    "S": "↓ Brooklyn/CI"
+    "S": "↓ Brooklyn"
 }
 DIR_COLORS = {
     "N": "#34D399",  # Greenish for North (Manhattan direction)
