@@ -29,7 +29,7 @@ MAX_TRAINS = TRAINS_PER_STATION
 REFRESH_SECS = 10             # Fetch from MTA every 10s
 CYCLE_SECS = 10             # seconds to show each station
 # skip trains arriving in < threshold mins
-MIN_MINS_AWAY = float(os.environ.get("MIN_THRESHOLD_MINS", "5"))
+MIN_MINS_AWAY = float(os.environ.get("MIN_THRESHOLD_MINS", "3"))
 print(
     f"[DEBUG] MIN_THRESHOLD_MINS env var: {os.environ.get('MIN_THRESHOLD_MINS', 'NOT SET')}")
 print(f"[DEBUG] MIN_MINS_AWAY: {MIN_MINS_AWAY}")
