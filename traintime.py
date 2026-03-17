@@ -4,14 +4,17 @@ Designed for Raspberry Pi. Fullscreen tkinter UI with live GTFS-RT data.
 Cycles between stations every 10 seconds.
 """
 
-from datetime import datetime
-import os
-import traceback
-import time
-import threading
-from tkinter import font as tkfont
 import tkinter as tk
-print("Script starting...")
+from tkinter import font as tkfont
+import threading
+import time
+import traceback
+import os
+import socket
+from datetime import datetime
+
+# Prevent network fetches (like gtfs pulls) from hanging indefinitely
+socket.setdefaulttimeout(15)
 
 
 try:
