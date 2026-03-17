@@ -9,8 +9,11 @@ echo "────────────────────────�
 
 # 1. Install Python dependencies
 echo ""
-echo "📦 Installing Python dependencies…"
-pip3 install -r requirements.txt --break-system-packages
+echo "📦 Creating virtual environment and installing dependencies…"
+python3 -m venv venv
+source venv/bin/activate
+pip install --upgrade pip
+pip install -r requirements.txt
 
 # 2. Install the systemd service for auto-start on boot
 echo ""

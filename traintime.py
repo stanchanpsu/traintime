@@ -16,6 +16,18 @@ from datetime import datetime
 # Prevent network fetches (like gtfs pulls) from hanging indefinitely
 socket.setdefaulttimeout(15)
 
+try:
+    import requests
+    from requests.adapters import HTTPAdapter
+    _orig_send = HTTPAdapter.send
+    def _timeout_send(self, request, **kwargs):
+        if 'timeout' not in kwargs or kwargs['timeout'] is None:
+            kwargs['timeout'] = 15
+        return _orig_send(self, request, **kwargs)
+    HTTPAdapter.send = _timeout_send
+except ImportError:
+    pass
+
 
 try:
     from nyct_gtfs import NYCTFeed
