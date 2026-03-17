@@ -335,7 +335,11 @@ class TraintimeApp:
 
         for feed_id in FEED_IDS:
             try:
+                print(f"[TrainTime] [{datetime.now().strftime('%H:%M:%S')}] Starting fetch for feed {feed_id}...")
+                start_time = time.time()
                 feed = NYCTFeed(feed_id)
+                duration = time.time() - start_time
+                print(f"[TrainTime] [{datetime.now().strftime('%H:%M:%S')}] Finished fetch for feed {feed_id} in {duration:.2f}s")
                 for trip in feed.trips:
                     for stop_time in trip.stop_time_updates:
                         stop_id = getattr(stop_time, 'stop_id', None)
