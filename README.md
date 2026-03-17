@@ -24,19 +24,21 @@ git clone https://github.com/stanchanpsu/traintime.git
 cd traintime
 ```
 
-### 2. Install dependencies
+### 2. Setup and Install
+
+The easiest way to get started is using the automated setup script. This will create a local python virtual environment, install dependencies, and set up a systemd service.
 
 ```bash
-# Recommended to use a virtual environment
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
+chmod +x setup.sh
+./setup.sh
 ```
 
-### 3. Run
+### 3. Run Manually
+
+If you prefer to run it manually (without the auto-start service):
 
 ```bash
-python traintime.py
+./venv/bin/python traintime.py
 ```
 
 Press **Escape** to quit, or **F11** to toggle fullscreen.
@@ -62,6 +64,11 @@ FULLSCREEN=0 MIN_THRESHOLD_MINS=3 python traintime.py
 - Raspberry Pi (3 or newer) with a touchscreen (e.g., the official 7" 800x480 or similar).
 - Internet connection.
 - Raspberry Pi OS with desktop.
+- System packages for virtual environments and Tkinter:
+  ```bash
+  sudo apt-get update
+  sudo apt-get install -y python3-venv python3-tk
+  ```
 
 ### Automatic Auto-start
 
